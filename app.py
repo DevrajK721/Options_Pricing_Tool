@@ -34,6 +34,29 @@ method = st.sidebar.selectbox("Pricing Method", ["Analytic", "Monte Carlo", "Qua
 
 # Main content title
 st.markdown("# Options Pricing Dashboard 💹")
+st.markdown("This tool alllows you to price European, American and exotic options using various methods. To start please enter your parameters and choose an options pricing method. **Note: If you are using custom Payoff functions and/or American Style Options, you cannot use the base analytical solver.**")
+
+with st.expander("How to Use"):
+    st.markdown("### European Vanilla Options")
+    st.markdown(
+        "Simply enter the parameters in the sidebar and select **Analytic** "
+        "to compute the option prices using the Black-Scholes formula. "
+        "This method is fast and efficient for standard European options."
+    )
+
+    st.markdown("### American Options with or without custom payoffs")
+    st.markdown(
+        "For American options, you can use the **Binomial Tree Method** or "
+        "**Finite Difference PDE** methods. These methods allow for more complex "
+        "payoff structures and can handle early exercise features of American options."
+    )
+
+    st.markdown("### European Exotic Options with custom payoffs")
+    st.markdown(
+        "For European exotic options, you can use the **Monte Carlo** or **Quadrature** "
+        "methods. These methods allow you to define custom payoff functions for your options, "
+        "enabling pricing of complex derivatives."
+    )
 
 # Custom payoff section in main area for MC/Quad
 def get_custom_payoff_editor():
