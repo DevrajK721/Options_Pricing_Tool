@@ -60,7 +60,7 @@ def mc_pricer(S, r, q, sigma, T, payoff_fn, payoff_args=(), n_paths=500000, disc
     return option_price
 
 
-def quad_price(S, r, q, sigma, T, payoff_fn, payoff_args=()):
+def quad_price(S, r, q, sigma, T, payoff_fn, payoff_args=(), strike=None):
     """
     Calculate the option price using numerical integration (quadrature method).
 
@@ -76,13 +76,23 @@ def quad_price(S, r, q, sigma, T, payoff_fn, payoff_args=()):
     Returns:
     float: The estimated price of the option
     """
-    m = np.log(S) + (r - q - 0.5*sigma**2)*T
-    dist = lognorm(s=sigma*np.sqrt(T), scale=np.exp(m))
+    m = np.log(S) + (r - q - 0.5 * sigma**2) * T
+    dist = lognorm(s=sigma * np.sqrt(T), scale=np.exp(m))
 
     integrand = lambda s: payoff_fn(s, *payoff_args) * dist.pdf(s)
-    integral, _ = quad(integrand, 0, np.inf, limit=1000)
 
-    return np.exp(-r*T) * integral
+    # If we know the payoff is zero below strike, start there:
+    lower = strike if (strike is not None) else 0.0
+
+    integral, error = quad(
+        integrand,
+        lower,
+        np.inf,
+        epsabs=1e-8,
+        epsrel=1e-8
+    )
+
+    return np.exp(-r * T) * integral
 
 if __name__ == "__main__":
     # Example usage
@@ -106,7 +116,7 @@ if __name__ == "__main__":
     put_mc_price = mc_pricer(S, r, q, sigma, T, european_put_payoff, (K,))
     print(f"Monte Carlo Call Price: {call_mc_price:.2f}, Put Price: {put_mc_price:.2f}")
 
-    call_quad_price = quad_price(S, r, q, sigma, T, european_call_payoff, (K,))
+    call_quad_price = quad_price(S, r, q, sigma, T, european_call_payoff, (K,), K)
     put_quad_price = quad_price(S, r, q, sigma, T, european_put_payoff, (K,))
     print(f"Quadrature Call Price: {call_quad_price:.2f}, Put Price: {put_quad_price:.2f}")
     
