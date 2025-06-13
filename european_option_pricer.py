@@ -3,7 +3,7 @@ from scipy.stats import norm
 from scipy.stats import lognorm
 from scipy.integrate import quad
 
-def bs_options_pricer(S, K, T, r, sigma, q):
+def bs_analytic(S, K, T, r, sigma, q):
     """
     Calculate the Black-Scholes option price for a vanilla call or put option.
 
@@ -28,7 +28,7 @@ def bs_options_pricer(S, K, T, r, sigma, q):
 
     return call_price, put_price
 
-def mc_pricer(S, r, q, sigma, T, payoff_fn, payoff_args=(), n_paths=500000, discrete_steps=100):
+def mc_price(S, r, q, sigma, T, payoff_fn, payoff_args=(), n_paths=500000, discrete_steps=100):
     """
     Monte Carlo simulation for option pricing for European Style Options with exotic payoff functions.
 
@@ -60,7 +60,7 @@ def mc_pricer(S, r, q, sigma, T, payoff_fn, payoff_args=(), n_paths=500000, disc
     return option_price
 
 
-def quad_price(S, r, q, sigma, T, payoff_fn, payoff_args=(), strike=None):
+def quad_price_log(S, r, q, sigma, T, payoff_fn, payoff_args=(), strike=None):
     """
     Calculate the option price using numerical integration (quadrature method).
 
@@ -103,7 +103,7 @@ if __name__ == "__main__":
     sigma = 0.2 # Volatility
     q = 0.01 # Dividend yield
 
-    call_price, put_price = bs_options_pricer(S, K, T, r, sigma, q)
+    call_price, put_price = bs_analytic(S, K, T, r, sigma, q)
     print(f"Call Price: {call_price:.2f}, Put Price: {put_price:.2f}")
 
     def european_call_payoff(S_T, K):
@@ -112,11 +112,11 @@ if __name__ == "__main__":
     def european_put_payoff(S_T, K):
         return np.maximum(K - S_T, 0)
 
-    call_mc_price = mc_pricer(S, r, q, sigma, T, european_call_payoff, (K,))
-    put_mc_price = mc_pricer(S, r, q, sigma, T, european_put_payoff, (K,))
+    call_mc_price = mc_price(S, r, q, sigma, T, european_call_payoff, (K,))
+    put_mc_price = mc_price(S, r, q, sigma, T, european_put_payoff, (K,))
     print(f"Monte Carlo Call Price: {call_mc_price:.2f}, Put Price: {put_mc_price:.2f}")
 
-    call_quad_price = quad_price(S, r, q, sigma, T, european_call_payoff, (K,), K)
-    put_quad_price = quad_price(S, r, q, sigma, T, european_put_payoff, (K,))
+    call_quad_price = quad_price_log(S, r, q, sigma, T, european_call_payoff, (K,), K)
+    put_quad_price = quad_price_log(S, r, q, sigma, T, european_put_payoff, (K,))
     print(f"Quadrature Call Price: {call_quad_price:.2f}, Put Price: {put_quad_price:.2f}")
     
