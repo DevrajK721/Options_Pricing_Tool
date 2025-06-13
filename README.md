@@ -13,3 +13,15 @@ conda activate Options_Env
 ```shell
 conda install numpy scipy streamlit
 ```
+
+### Streamlit App 
+```shell
+streamlit run app.py
+```
+
+## Docs 
+[Introduction to Options](docs/Options.md)
+
+[Methods for Pricing European Options](docs/European_Methods.md)
+
+[Methods for Pricing American Options](docs/American_Methods.md)
