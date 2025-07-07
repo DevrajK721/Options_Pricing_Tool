@@ -28,9 +28,22 @@ def bs_analytic(S, K, T, r, sigma, q):
 
     return call_price, put_price
 
-def mc_price(S, r, q, sigma, T, payoff_fn, payoff_args=(), n_paths=500000, discrete_steps=100):
+def precompute_gh_nodes_weights(n):
     """
-    Monte Carlo simulation for option pricing for European Style Options with exotic payoff functions.
+    Precompute the Gauss-Hermite nodes and weights for numerical integration.
+
+    Parameters:
+    n (int): Number of nodes
+
+    Returns:
+    tuple: (nodes, weights)
+    """
+    nodes, weights = np.polynomial.hermite.hermgauss(n)
+    return nodes, weights
+
+def gh_quad_price(S, r, q, sigma, T, payoff_fn, payoff_args=(), strike=None, t = 0):
+    """
+    Calculate the option price using Gauss-Hermite Quadrature.
 
     Parameters:
     S (float): Current stock price
@@ -40,60 +53,27 @@ def mc_price(S, r, q, sigma, T, payoff_fn, payoff_args=(), n_paths=500000, discr
     T (float): Time to expiration in years
     payoff_fn (callable): Function to calculate the payoff of the option
     payoff_args (tuple): Additional arguments for the payoff function
-    n_paths (int): Number of simulated paths
 
     Returns:
     float: The estimated price of the option
     """
-    dt = T / discrete_steps
-    paths = np.zeros(shape=(n_paths, discrete_steps + 1), dtype=np.float64)
-    paths[:, 0] = S
 
-    for i in range(1, discrete_steps + 1):
-        Z = np.random.normal(size=n_paths)
-        paths[:, i] = paths[:, i - 1] * np.exp((r - q - 0.5 * sigma ** 2) * dt + sigma * np.sqrt(dt) * Z)
-   
-    payoffs = payoff_fn(paths[:, -1], *payoff_args)
-    discounted_payoffs = np.exp(-r * T) * payoffs
-    option_price = np.mean(discounted_payoffs)
+    # Precompute nodes and weights for Gauss-Hermite quadrature
+    nodes, weights = precompute_gh_nodes_weights(256) # Weights (w_i) and nodes (x_i)
+    tau = T - t  # Remaining time to expiration
+
+    integral_coeff = np.exp(-r * tau) / np.sqrt(np.pi)
+
+    def integrand(u):
+        S_T = S * np.exp((r - q - 0.5 * sigma ** 2) * tau + sigma * np.sqrt(2 * tau) * u)
+        term = payoff_fn(S_T, *payoff_args)
+        return term
+
+    integral = np.sum(weights * integrand(nodes)) # Gauss-Hermite quadrature 
+
+    return integral_coeff * integral
+
     
-    return option_price
-
-
-def quad_price_log(S, r, q, sigma, T, payoff_fn, payoff_args=(), strike=None):
-    """
-    Calculate the option price using numerical integration (quadrature method).
-
-    Parameters:
-    S (float): Current stock price
-    r (float): Risk-free interest rate (annualized)
-    q (float): Dividend yield (annualized)
-    sigma (float): Volatility of the underlying stock (annualized)
-    T (float): Time to expiration in years
-    payoff_fn (callable): Function to calculate the payoff of the option
-    payoff_args (tuple): Additional arguments for the payoff function
-
-    Returns:
-    float: The estimated price of the option
-    """
-    m = np.log(S) + (r - q - 0.5 * sigma**2) * T
-    dist = lognorm(s=sigma * np.sqrt(T), scale=np.exp(m))
-
-    integrand = lambda s: payoff_fn(s, *payoff_args) * dist.pdf(s)
-
-    # If we know the payoff is zero below strike, start there:
-    lower = strike if (strike is not None) else 0.0
-
-    integral, error = quad(
-        integrand,
-        lower,
-        np.inf,
-        epsabs=1e-8,
-        epsrel=1e-8
-    )
-
-    return np.exp(-r * T) * integral
-
 if __name__ == "__main__":
     # Example usage
     S = 100  # Current stock price
@@ -101,10 +81,10 @@ if __name__ == "__main__":
     T = 1    # Time to expiration in years
     r = 0.05 # Risk-free interest rate
     sigma = 0.2 # Volatility
-    q = 0.01 # Dividend yield
+    q = 0.0 # Dividend yield
 
     call_price, put_price = bs_analytic(S, K, T, r, sigma, q)
-    print(f"Call Price: {call_price:.2f}, Put Price: {put_price:.2f}")
+    print(f"Call Price: {call_price:.4f}, Put Price: {put_price:.4f}")
 
     def european_call_payoff(S_T, K):
         return np.maximum(S_T - K, 0)
@@ -112,11 +92,10 @@ if __name__ == "__main__":
     def european_put_payoff(S_T, K):
         return np.maximum(K - S_T, 0)
 
-    call_mc_price = mc_price(S, r, q, sigma, T, european_call_payoff, (K,))
-    put_mc_price = mc_price(S, r, q, sigma, T, european_put_payoff, (K,))
-    print(f"Monte Carlo Call Price: {call_mc_price:.2f}, Put Price: {put_mc_price:.2f}")
+    call_quad_price = gh_quad_price(S, r, q, sigma, T, european_call_payoff, (K,), K)
+    put_quad_price = gh_quad_price(S, r, q, sigma, T, european_put_payoff, (K,))
+    print(f"Quadrature Call Price: {call_quad_price:.4f}, Put Price: {put_quad_price:.4f}")
 
-    call_quad_price = quad_price_log(S, r, q, sigma, T, european_call_payoff, (K,), K)
-    put_quad_price = quad_price_log(S, r, q, sigma, T, european_put_payoff, (K,))
-    print(f"Quadrature Call Price: {call_quad_price:.2f}, Put Price: {put_quad_price:.2f}")
+    assert np.isclose(call_price, call_quad_price, atol=0.1), "Call prices do not match!"
+    assert np.isclose(put_price, put_quad_price, atol=0.1), "Put prices do not match!"
     
