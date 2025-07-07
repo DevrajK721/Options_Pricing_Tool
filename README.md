@@ -1,5 +1,5 @@
 # Options Pricing Tool
-If you simply wish to use the tool, it is available as a web application at [Options Pricing Tool Application](https://dk-options-pricing-tool.streamlit.app/?), although I would recommend building using the instructions below as Streamlit Cloud has limited resources and can be slow.
+If you simply wish to use the tool, it is available as a web application at [Options Pricing Tool Application](https://dk-options-pricing-tool.streamlit.app/?), although I would recommend building using the instructions below as Streamlit Cloud has limited resources and is painfully slow.
 
 An Options Pricing Tool for European Style Options with additional support for exotic payoffs. This tool will use the standard derived equation to find the option price of vanilla call or put options and use a Gauss-Hermite Approach for other European Style Options. 
 
