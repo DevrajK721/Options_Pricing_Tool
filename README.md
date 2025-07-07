@@ -22,6 +22,7 @@ streamlit run app.py
 ```
 
 ## Docs 
+The docs were lifted from my Obsidian notes and edited so they don't render properly in Github. Cloning the repository and visualizing in your VSCode works though.
 [Introduction to Options](docs/Options.md)
 
 [Method for Pricing European Options](docs/Gauss-Hermite.md)
